@@ -45,8 +45,6 @@ func parseSecretId(secretId string) (string, string, error) {
 	return urlQuery, property, nil
 } 
 
-// I really dont think this is the best implementaion since user must use ObjectName.
-// Maybe something that is more modular alllowing which request to use, this would require modifying how the secret ID looks
 func constructSecretUrl(url string, urlQuery string) (string) {
 	url = fmt.Sprintf("%s/AIMWebService/api/Accounts?%s", url, urlQuery)
 	// Currently only replace space in url for URL encdoing, looking for a better method
