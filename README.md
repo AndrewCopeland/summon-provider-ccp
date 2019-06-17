@@ -34,7 +34,7 @@ Otherwise, download the [latest release](https://github.com/AndrewCopeland/summo
 Give summon-provider-ccp a variable name and it will fetch it for you and print the value to stdout.
 
 ```sh-session
-$ summon-provider-ccp AppID=myApplication&Safe=appSafe&Object=the-identifying-name-of-the-object/Password
+$ summon-provider-ccp "AppID=myApplication&Safe=appSafe&Object=the-identifying-name-of-the-object/Password"
 my-application-password
 ```
 
