@@ -11,7 +11,7 @@ CyberArk CCP provider for [Summon](https://github.com/cyberark/summon).
 ## Install
 
 Pre-built binaries and packages are available from GitHub releases
-[here](https://github.com/cyberark/summon-provider-ccp/releases).
+[here](https://github.com/AndrewCopeland/summon-provider-ccp/releases).
 
 ### Homebrew
 
@@ -27,7 +27,7 @@ Currently not supported
 
 
 ### Manual Install
-Otherwise, download the [latest release](https://github.com/cyberark/summon-provider-ccp/releases) and extract it to the directory `/usr/local/lib/summon`.
+Otherwise, download the [latest release](https://github.com/AndrewCopeland/summon-provider-ccp/releases) and extract it to the directory `/usr/local/lib/summon`.
 
 ## Usage in isolation
 
