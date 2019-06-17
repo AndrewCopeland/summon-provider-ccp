@@ -27,7 +27,7 @@ Currently not supported
 
 
 ### Manual Install
-Otherwise, download the [latest release](https://github.com/cyberark/summon-conjur/releases) and extract it to the directory `/usr/local/lib/summon`.
+Otherwise, download the [latest release](https://github.com/cyberark/summon-provider-ccp/releases) and extract it to the directory `/usr/local/lib/summon`.
 
 ## Usage in isolation
 
@@ -41,7 +41,7 @@ my-application-password
 ### Flags
 
 ```
-Usage of summon-conjur:
+Usage of summon-provider-ccp:
   -h, --help
 	show help (default: false)
   -v, --verbose
