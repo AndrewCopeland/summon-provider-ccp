@@ -7,6 +7,8 @@ CyberArk CCP provider for [Summon](https://github.com/cyberark/summon).
 
 #### **Warning: Naming and APIs are still subject to breaking changes! Do not use in production**
 
+#### **Limitation: This provider does not support client certificate authentication using CCP, this feature will be added.
+
 ---
 ## Install
 
