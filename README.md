@@ -83,5 +83,7 @@ AWS_SECRET_ACCESS_KEY=A23MSKSKSJASHDIWM
 
 * Set the Environment Variable:
   * `CYBERARK_CCP_URL`: The url to the CCP server
+  * `CYBERARK_CCP_CLIENT_CERT`: The client certificate
+  * `CYBERARK_CCP_CLIENT_KEY`: The client key
 
 ---
