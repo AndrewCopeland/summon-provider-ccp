@@ -1,40 +1,42 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strings"
-	"net/http"
-	"io"
-	"encoding/json"
-	"errors"
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/karrick/golf"
+	log "github.com/sirupsen/logrus"
 )
 
 // example secret ID for CCP: appId/safe/folder/object/property
 type ccpConfig struct {
-    url string
-	query string
+	url      string
+	query    string
 	property string
 }
 
-func loadConfig() (string, error) {
+func loadConfig() (string, string, string, error) {
 	var err error
 	url, exists := os.LookupEnv("CYBERARK_CCP_URL")
 
 	if exists == false {
-		err = errors.New("environment variable 'CYBERARK_CCP_URL' is not present and is mandatory.")
+		err = errors.New("Environment variable 'CYBERARK_CCP_URL' is not present and is mandatory")
 	}
+
+	clientCert := os.Getenv("CYBERARK_CCP_CLIENT_CERT")
+	clientKey := os.Getenv("CYBERARK_CCP_CLIENT_KEY")
 
 	log.Debugf("CCP URL: %s", url)
 
-	return url, err
+	return url, clientCert, clientKey, err
 }
-
 
 func parseSecretId(secretId string) (string, string, error) {
 	vars := strings.SplitN(secretId, "/", 2)
@@ -43,29 +45,34 @@ func parseSecretId(secretId string) (string, string, error) {
 	}
 	urlQuery, property := vars[0], vars[1]
 	return urlQuery, property, nil
-} 
+}
 
-func constructSecretUrl(url string, urlQuery string) (string) {
+func constructSecretUrl(url string, urlQuery string) string {
 	url = fmt.Sprintf("%s/AIMWebService/api/Accounts?%s", url, urlQuery)
 	// Currently only replace space in url for URL encdoing, looking for a better method
 	url = strings.Replace(url, " ", "%20", -1)
 	return url
 }
 
-func sendHttpRequest(url string) ([]byte, error) {
+func sendHttpRequest(url string, useClientCert bool, cert tls.Certificate) ([]byte, error) {
+	tlsConfig := &tls.Config{}
 
-	// To ignore intrusted certificate
-	tr := &http.Transport{}
-	ignore, found := os.LookupEnv("CYBERARK_CCP_IGNORE_CERT")
-	ignore = strings.ToLower(ignore)
-	if found == true {
-		if ignore == "yes" || ignore == "true" {
-			tr = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-		}
+	// Set client cert if using it
+	if useClientCert {
+		tlsConfig.Certificates = []tls.Certificate{cert}
+		tlsConfig.BuildNameToCertificate()
 	}
-	
+
+	// Insecure Skip Verify
+	ignore := strings.ToLower(os.Getenv("CYBERARK_CCP_IGNORE_CERT"))
+	if ignore == "yes" || ignore == "true" {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	tr := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+
 	// Send the http request
 	client := &http.Client{Transport: tr}
 	log.Debugf("Url: %s", url)
@@ -76,23 +83,22 @@ func sendHttpRequest(url string) ([]byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return streamToByte(resp.Body), errors.New(fmt.Sprintf("invalid response from CCP. Status Code: %s", resp.Status))
+		return streamToByte(resp.Body), fmt.Errorf("Invalid response from CCP. Status Code: %s", resp.Status)
 	}
 	body := streamToByte(resp.Body)
-	log.Debugf("Body returned: %s", string(body))
 	return body, err
 }
 
 func streamToByte(stream io.Reader) []byte {
 	buf := new(bytes.Buffer)
-	  buf.ReadFrom(stream)
-	  return buf.Bytes()
+	buf.ReadFrom(stream)
+	return buf.Bytes()
 }
 
 func parseSecretProperty(body []byte, propertyKey string) (string, error) {
 	jsonMap := make(map[string]interface{})
 	err := json.Unmarshal(body, &jsonMap)
-	
+
 	if err != nil {
 		return "", err
 	}
@@ -101,15 +107,26 @@ func parseSecretProperty(body []byte, propertyKey string) (string, error) {
 		return fmt.Sprintf("%s", val), err
 	}
 
-	return "", errors.New(fmt.Sprintf("Failed to parse secret property '%s' from the response", propertyKey))
+	return "", fmt.Errorf("Failed to parse secret property '%s' from the response", propertyKey)
 }
 
 func RetrieveSecret(variableName string) {
 	// Load environment variables and needed config
-	url, err := loadConfig()
+	url, clientCert, clientKey, err := loadConfig()
 	if err != nil {
 		log.Errorf("Failed loading CCP environment variables: %s\n", err)
 		os.Exit(1)
+	}
+
+	// If using client certificate make sure to load
+	cert := tls.Certificate{}
+	useClientCert := false
+	if clientCert != "" && clientKey != "" {
+		cert, err = tls.LoadX509KeyPair(clientCert, clientKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		useClientCert = true
 	}
 
 	urlQuery, property, err := parseSecretId(variableName)
@@ -117,9 +134,9 @@ func RetrieveSecret(variableName string) {
 		log.Errorf("Failed to parse secret id: %s", err)
 		os.Exit(1)
 	}
-	url = constructSecretUrl(url, urlQuery) 
+	url = constructSecretUrl(url, urlQuery)
 
-	body, err := sendHttpRequest(url)
+	body, err := sendHttpRequest(url, useClientCert, cert)
 	if err != nil {
 		log.Errorf("Failed to send http request to CCP. %s\n", err)
 		os.Exit(1)
@@ -131,7 +148,6 @@ func RetrieveSecret(variableName string) {
 	}
 
 	os.Stdout.Write([]byte(value))
-
 }
 
 func main() {
